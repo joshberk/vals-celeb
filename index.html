@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>valentine.exe</title>
+
+<style>
+:root{
+  --bg1:#ffdde8;
+  --bg2:#fff3f7;
+  --pink:#ff4d88;
+  --hot:#ff2d6d;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+  background: radial-gradient(1200px 800px at 20% 20%, var(--bg2), var(--bg1));
+  overflow:hidden;
+}
+
+/* Background */
+.bg-hearts{
+  position:fixed; inset:0; pointer-events:none; opacity:.35;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(255,77,136,.15) 0 10px, transparent 11px),
+    radial-gradient(circle at 80% 30%, rgba(255,45,109,.12) 0 12px, transparent 13px),
+    radial-gradient(circle at 30% 80%, rgba(255,77,136,.12) 0 14px, transparent 15px),
+    radial-gradient(circle at 70% 75%, rgba(255,45,109,.10) 0 10px, transparent 11px);
+}
+
+/* LOADING */
+#loadingOverlay{
+  position:fixed; inset:0;
+  display:grid; place-items:center;
+  background: radial-gradient(1200px 800px at 20% 20%, var(--bg2), var(--bg1));
+  z-index:9999;
+}
+.loadingBox{
+  width:min(760px,92vw);
+  background:#111;
+  color:#eee;
+  border-radius:22px;
+  padding:20px;
+  font-family:monospace;
+  box-shadow:0 25px 70px rgba(0,0,0,.3);
+}
+.line{margin:4px 0}
+.ok{color:#9effa9}
+.warn{color:#ffd479}
+.badge{
+  margin-left:8px;
+  padding:2px 8px;
+  font-size:11px;
+  font-weight:700;
+  border-radius:999px;
+  background:linear-gradient(90deg,#9effa9,#ffd479);
+  color:#000;
+}
+.progressWrap{
+  margin-top:10px;
+  background:#222;
+  border-radius:10px;
+  height:14px;
+  overflow:hidden;
+}
+.progressBar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--pink),var(--hot));
+  transition:.3s;
+}
+.fadeOut{animation:fade .6s forwards}
+@keyframes fade{to{opacity:0;transform:translateY(-10px)}}
+.bounce{animation:bounce .4s}
+@keyframes bounce{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.1)}
+  100%{transform:scale(1)}
+}
+
+/* MAIN CARD */
+.card{
+  display:none;
+  width:min(680px,92vw);
+  background:#fff;
+  padding:28px;
+  border-radius:24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.15);
+  text-align:center;
+}
+h1{margin:0 0 10px}
+.prompt{font-size:22px;font-weight:700;margin:15px 0}
+.btnrow{display:flex;justify-content:center;gap:12px}
+button{
+  padding:14px 18px;
+  border:none;
+  border-radius:14px;
+  font-weight:700;
+  cursor:pointer;
+  min-width:160px;
+}
+.yes{background:linear-gradient(135deg,var(--pink),var(--hot));color:#fff}
+.no{background:#eee}
+.onlyyes{display:none;margin-top:12px}
+
+/* FX */
+#fxLayer,#balloonLayer{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.confetti{
+  position:absolute;
+  width:8px;height:12px;
+  border-radius:3px;
+  animation:fall 2s forwards;
+}
+@keyframes fall{
+  to{transform:translate(var(--dx),var(--dy)) rotate(360deg);opacity:0}
+}
+.balloon{
+  position:absolute;
+  width:36px;height:46px;
+  border-radius:50%;
+}
+.pop{animation:pop .25s forwards}
+@keyframes pop{to{transform:scale(1.6);opacity:0}}
+
+/* ROMANTIC CELEBRATION */
+.romantic-msg{
+  display:none;
+  margin-top:20px;
+  font-size:18px;
+  color:#ff2d6d;
+  animation:fadeInUp 1s ease;
+}
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.card.celebrating{
+  animation:glowPulse 2s infinite;
+}
+@keyframes glowPulse{
+  0%,100%{box-shadow:0 20px 60px rgba(255,77,136,.3)}
+  50%{box-shadow:0 20px 80px rgba(255,45,109,.5),0 0 40px rgba(255,77,136,.3)}
+}
+.heart{
+  position:absolute;
+  font-size:24px;
+  animation:floatHeart 4s forwards;
+  pointer-events:none;
+}
+@keyframes floatHeart{
+  0%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-300px) scale(1.5)}
+}
+.love-text{
+  font-size:28px;
+  font-weight:700;
+  background:linear-gradient(135deg,#ff4d88,#ff2d6d);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin:15px 0;
+}
+
+/* Typewriter cursor */
+.typing-cursor{
+  display:inline-block;
+  width:8px;
+  height:1em;
+  background:#eee;
+  margin-left:2px;
+  animation:blink .6s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* MOBILE OPTIMIZATION */
+@media (max-width: 600px){
+  .loadingBox{
+    padding:15px;
+    border-radius:16px;
+    font-size:13px;
+  }
+  .line{margin:3px 0}
+  .badge{
+    display:inline-block;
+    margin-top:4px;
+    margin-left:0;
+  }
+  .card{
+    padding:20px 16px;
+    border-radius:18px;
+  }
+  h1{font-size:22px}
+  .prompt{font-size:18px}
+  button{
+    padding:12px 14px;
+    min-width:120px;
+    font-size:14px;
+  }
+  .btnrow{
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .love-text{font-size:22px}
+  .romantic-msg{font-size:16px}
+  .romantic-msg p{margin:8px 0}
+  .heart{font-size:20px !important}
+  .confetti{width:6px;height:10px}
+  .balloon{width:28px;height:36px}
+}
+
+@media (max-width: 400px){
+  .loadingBox{font-size:11px;padding:12px}
+  h1{font-size:18px}
+  .prompt{font-size:16px}
+  button{min-width:100px;padding:10px 12px}
+  .love-text{font-size:18px}
+}
+</style>
+</head>
+
+<body>
+<div class="bg-hearts"></div>
+
+<!-- MUSIC - Replace "your-song.mp3" with your audio file -->
+<audio id="bgMusic" loop>
+  <source src="vibehorn-romantic-piano-431010.mp3" type="audio/mpeg">
+</audio>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loadingBox" id="loadingBox">
+    <div class="line" id="bootLine"></div>
+    <div class="line warn" id="scanLine"></div>
+    <div class="line" id="matchLine" style="display:none;"></div>
+    <div class="line" id="compatLine" style="display:none;"></div>
+    <div class="line" id="launchLine" style="display:none;"></div>
+    <div class="line ok" id="authLine" style="display:none;"></div>
+
+    <div class="progressWrap">
+      <div class="progressBar" id="progressBar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="card" id="card">
+  <h1 id="nameHeader"></h1>
+  <div class="prompt" id="prompt">Will you be my Valentine?</div>
+
+  <div class="btnrow" id="btnrow">
+    <button class="yes" id="yesBtn">Yes 💘</button>
+    <button class="no" id="noBtn">No 🙃</button>
+  </div>
+
+  <div class="onlyyes" id="onlyYesRow">
+    <button class="yes" id="finalYesBtn">Okay fine… Yes 💖</button>
+  </div>
+
+  <div class="romantic-msg" id="romanticMsg">
+    <div class="love-text">You just made me the happiest person alive! 💕</div>
+    <p>I can't wait to spend this Valentine's Day with you.</p>
+    <p>You mean everything to me, <span id="romanticName"></span>. 💖</p>
+  </div>
+</div>
+
+<div id="fxLayer"></div>
+<div id="balloonLayer"></div>
+
+<script>
+const progressBar=document.getElementById("progressBar");
+const bootLine=document.getElementById("bootLine");
+const scanLine=document.getElementById("scanLine");
+const matchLine=document.getElementById("matchLine");
+const compatLine=document.getElementById("compatLine");
+const launchLine=document.getElementById("launchLine");
+const authLine=document.getElementById("authLine");
+const loadingBox=document.getElementById("loadingBox");
+const loadingOverlay=document.getElementById("loadingOverlay");
+const card=document.getElementById("card");
+
+const yesBtn=document.getElementById("yesBtn");
+const noBtn=document.getElementById("noBtn");
+const finalYesBtn=document.getElementById("finalYesBtn");
+const btnrow=document.getElementById("btnrow");
+const onlyYesRow=document.getElementById("onlyYesRow");
+
+const fxLayer=document.getElementById("fxLayer");
+const balloonLayer=document.getElementById("balloonLayer");
+
+// Get name from URL parameter - keeps name out of source code
+// Share link like: yoursite.github.io/?k=Karsyn
+const urlParams = new URLSearchParams(window.location.search);
+const _n = urlParams.get('k') || 'Karsyn';
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// Typewriter effect
+async function typeText(element, text, speed = 40){
+  element.style.display = "block";
+  element.innerHTML = "";
+  for(let i = 0; i < text.length; i++){
+    element.innerHTML = text.substring(0, i + 1) + '<span class="typing-cursor"></span>';
+    await sleep(speed);
+  }
+  element.innerHTML = text;
+}
+
+// Initialize name in header and romantic message
+function initName(){
+  document.getElementById("nameHeader").innerHTML = _n + " 💖";
+  document.getElementById("romanticName").textContent = _n;
+}
+
+async function runLoading(){
+  initName();
+
+  // Boot line with typewriter
+  await typeText(bootLine, "> Booting romantic subsystem…", 35);
+  progressBar.style.width="20%";
+  await sleep(500);
+
+  // Scan line with typewriter
+  await typeText(scanLine, "> Scanning for the most beautiful girl…", 30);
+  scanLine.classList.add("warn");
+  progressBar.style.width="40%";
+  await sleep(800);
+
+  // Scan complete
+  await typeText(scanLine, "> Scan complete ✓", 40);
+  scanLine.classList.remove("warn");
+  scanLine.classList.add("ok");
+  await sleep(400);
+
+  // Match found with typewriter
+  matchLine.style.display = "block";
+  await typeText(matchLine, "> Match found: ", 35);
+  matchLine.innerHTML = '> Match found: <span class="ok">' + _n + '</span> <span class="badge">VERIFIED ✔</span>';
+  progressBar.style.width="60%";
+  await sleep(600);
+
+  // Compatibility line
+  compatLine.style.display = "block";
+  await typeText(compatLine, "> Compatibility score: ", 35);
+  compatLine.innerHTML = '> Compatibility score: <span class="ok">100%</span> (confidence: ∞)';
+  progressBar.style.width="75%";
+  await sleep(600);
+
+  // Launch line
+  launchLine.style.display = "block";
+  await typeText(launchLine, "> Launching Valentine interface…", 30);
+  progressBar.style.width="90%";
+  await sleep(500);
+
+  // Auth success
+  authLine.style.display = "block";
+  await typeText(authLine, "> AUTH SUCCESS ✅ Valentine privileges unlocked", 25);
+  authLine.classList.add("bounce");
+  progressBar.style.width="100%";
+  confettiBurst(window.innerWidth/2,window.innerHeight/2,60);
+  await sleep(1000);
+
+  loadingBox.classList.add("fadeOut");
+  setTimeout(()=>{
+    loadingOverlay.style.display="none";
+    card.style.display="block";
+  },600);
+}
+
+function confettiBurst(x,y,count){
+  for(let i=0;i<count;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.left=x+"px";
+    c.style.top=y+"px";
+    c.style.background=["#ff4d88","#ffd479","#9effa9","#8ad7ff"][Math.floor(Math.random()*4)];
+    c.style.setProperty("--dx",(Math.random()*400-200)+"px");
+    c.style.setProperty("--dy",(Math.random()*400+100)+"px");
+    fxLayer.appendChild(c);
+    setTimeout(()=>c.remove(),2000);
+  }
+}
+
+function spawnBalloons(){
+  for(let i=0;i<14;i++){
+    const b=document.createElement("div");
+    b.className="balloon";
+    b.style.left=Math.random()*window.innerWidth+"px";
+    b.style.top=window.innerHeight+"px";
+    b.style.background=["#ff4d88","#ff2d6d","#ff85b6"][Math.floor(Math.random()*3)];
+    balloonLayer.appendChild(b);
+    b.animate([
+      {transform:"translateY(0)"},
+      {transform:"translateY(-120vh)"}
+    ],{duration:4000,fill:"forwards"});
+    setTimeout(()=>{b.classList.add("pop");},3000);
+    setTimeout(()=>b.remove(),3500);
+  }
+}
+
+function spawnFloatingHearts(){
+  const hearts = ["💖","💕","💗","💓","❤️","💘","💝"];
+  for(let i=0;i<20;i++){
+    setTimeout(()=>{
+      const h = document.createElement("div");
+      h.className = "heart";
+      h.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+      h.style.left = Math.random()*window.innerWidth+"px";
+      h.style.top = window.innerHeight+"px";
+      h.style.fontSize = (20 + Math.random()*20)+"px";
+      h.style.animationDuration = (3 + Math.random()*2)+"s";
+      fxLayer.appendChild(h);
+      setTimeout(()=>h.remove(),5000);
+    }, i*200);
+  }
+}
+
+function celebrate(){
+  btnrow.style.display="none";
+  onlyYesRow.style.display="none";
+
+  // Update the prompt
+  document.getElementById("prompt").textContent="YES! 🎉";
+
+  // Show romantic message
+  document.getElementById("romanticMsg").style.display="block";
+
+  // Add glow effect to card
+  card.classList.add("celebrating");
+
+  // Play music with fade in
+  const music = document.getElementById("bgMusic");
+  music.volume = 0;
+  music.play();
+  let vol = 0;
+  const fadeIn = setInterval(() => {
+    if (vol < 0.6) {
+      vol += 0.03;
+      music.volume = vol;
+    } else {
+      clearInterval(fadeIn);
+    }
+  }, 150);
+
+  // Effects
+  spawnBalloons();
+  spawnFloatingHearts();
+  confettiBurst(window.innerWidth/2,window.innerHeight/2,100);
+
+  // Keep spawning hearts periodically
+  setInterval(()=>{
+    spawnFloatingHearts();
+  },6000);
+}
+
+let noCount=0;
+const noMessages=[
+  "Are you sure? 🥺",
+  "Really?? Think again… 💔",
+  "My heart is breaking… 😢",
+  "Please reconsider! 🙏",
+  "I'll be so sad… 😭",
+  "Last chance… 🥹"
+];
+
+noBtn.addEventListener("click",()=>{
+  noCount++;
+  const prompt = document.getElementById("prompt");
+
+  if(noCount < noMessages.length){
+    prompt.textContent = noMessages[noCount-1];
+
+    // Make Yes button grow bigger
+    const yesScale = 1 + (noCount * 0.15);
+    yesBtn.style.transform = `scale(${yesScale})`;
+
+    // Make No button shrink
+    const noScale = 1 - (noCount * 0.1);
+    noBtn.style.transform = `scale(${Math.max(noScale, 0.5)})`;
+    noBtn.style.opacity = 1 - (noCount * 0.1);
+
+    // Move No button to random position after 3 clicks
+    if(noCount >= 3){
+      noBtn.style.position = "relative";
+      const randX = (Math.random() - 0.5) * 100;
+      const randY = (Math.random() - 0.5) * 50;
+      noBtn.style.left = randX + "px";
+      noBtn.style.top = randY + "px";
+    }
+  } else {
+    // After all attempts, only show Yes
+    btnrow.style.display="none";
+    onlyYesRow.style.display="block";
+    prompt.textContent="Okay… the program only accepts YES 😌";
+  }
+});
+
+yesBtn.addEventListener("click",celebrate);
+finalYesBtn.addEventListener("click",celebrate);
+
+window.addEventListener("load",runLoading);
+</script>
+</body>
+</html>
