@@ -357,10 +357,9 @@ const onlyYesRow=document.getElementById("onlyYesRow");
 const fxLayer=document.getElementById("fxLayer");
 const balloonLayer=document.getElementById("balloonLayer");
 
-// Get name from URL parameter - keeps name out of source code
-// Share link like: yoursite.github.io/?k=Karsyn
+// Get name from URL parameter
 const urlParams = new URLSearchParams(window.location.search);
-const _n = urlParams.get('k') || 'Karsyn';
+const _n = urlParams.get('k') || atob('S2Fyc3lu');
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
