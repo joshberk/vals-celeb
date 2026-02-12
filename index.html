@@ -525,14 +525,14 @@ let dodgeCount=0;
 const maxDodges=8;
 const comicWords=["POW!","BONK!","NOPE!","WHOOSH!","ZIP!","BOING!","YOINK!","ZOOM!","WHAM!"];
 const dodgeMessages=[
-  "Can't catch me! 🏃💨",
-  "Too slow! ⚡",
-  "Haha, nice try! 😜",
-  "Meep meep! 🐰",
-  "You'll have to be quicker! 🏎️",
-  "Almost got me! 😏",
-  "I'm basically Road Runner! 💨",
-  "That's all, folks! 🐷"
+  "Are you sure? 🥺",
+  "You're really breaking my heart… 💔",
+  "I promise I'll treat you like a queen 👑",
+  "Please don't do this to me… 😢",
+  "I'll never stop asking… 🙏",
+  "My heart only beats for you 💓",
+  "You're my whole world… 😭",
+  "Fine… but my love isn't going anywhere 🥹"
 ];
 
 function spawnComicWord(x,y){
@@ -592,7 +592,7 @@ function dodgeButton(){
     setTimeout(()=>{
       btnrow.style.display="none";
       onlyYesRow.style.display="block";
-      prompt.textContent="The No button ran away! Only Yes remains 😌";
+      prompt.textContent="You can't say no to love… 💘";
     },800);
     return;
   }
