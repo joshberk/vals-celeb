@@ -43,6 +43,7 @@ body{
 }
 .loadingBox{
   width:min(760px,92vw);
+  min-height:180px;
   background:#111;
   color:#eee;
   border-radius:22px;
@@ -86,13 +87,21 @@ body{
 
 /* MAIN CARD */
 .card{
-  display:none;
+  opacity:0;
+  pointer-events:none;
   width:min(680px,92vw);
   background:#fff;
   padding:28px;
   border-radius:24px;
   box-shadow:0 20px 60px rgba(0,0,0,.15);
   text-align:center;
+  transition:opacity .5s ease, transform .5s ease;
+  transform:translateY(16px);
+}
+.card.visible{
+  opacity:1;
+  pointer-events:auto;
+  transform:translateY(0);
 }
 h1{margin:0 0 10px}
 .prompt{font-size:22px;font-weight:700;margin:15px 0}
@@ -196,6 +205,7 @@ button{
   display:none;
   margin-top:20px;
   font-size:18px;
+  line-height:1.7;
   color:#ff2d6d;
   animation:fadeInUp 1s ease;
 }
@@ -247,6 +257,7 @@ button{
     padding:15px;
     border-radius:16px;
     font-size:13px;
+    min-height:160px;
   }
   .line{margin:3px 0}
   .badge{
@@ -292,10 +303,7 @@ button{
 <body>
 <div class="bg-hearts"></div>
 
-<!-- MUSIC - Replace "your-song.mp3" with your audio file -->
-<audio id="bgMusic" loop>
-  <source src="vibehorn-romantic-piano-431010.mp3" type="audio/mpeg">
-</audio>
+<audio id="bgMusic" loop></audio>
 
 <!-- LOADING -->
 <div id="loadingOverlay">
@@ -331,6 +339,7 @@ button{
     <div class="love-text">You just made me the happiest person alive! 💕</div>
     <p>I can't wait to spend this Valentine's Day with you.</p>
     <p>You mean everything to me, <span id="romanticName"></span>. 💖</p>
+    <p>— From <em id="senderNameEl"></em>, with all my heart.</p>
   </div>
 </div>
 
@@ -338,197 +347,204 @@ button{
 <div id="balloonLayer"></div>
 
 <script>
-const progressBar=document.getElementById("progressBar");
-const bootLine=document.getElementById("bootLine");
-const scanLine=document.getElementById("scanLine");
-const matchLine=document.getElementById("matchLine");
-const compatLine=document.getElementById("compatLine");
-const launchLine=document.getElementById("launchLine");
-const authLine=document.getElementById("authLine");
-const loadingBox=document.getElementById("loadingBox");
-const loadingOverlay=document.getElementById("loadingOverlay");
-const card=document.getElementById("card");
+// ── SENDER CONFIGURATION ──────────────────────────────────────────────────────
+// Edit these values before sharing the page.
+// To personalise the URL without showing a plaintext name, base64-encode the
+// recipient's name and append it as ?k=<base64>.  Example:
+//   btoa("Karsyn")  →  "S2Fyc3lu"   →  share as  ?k=S2Fyc3lu
+const CONFIG = {
+  name:       "Karsyn",                              // recipient name (fallback)
+  senderName: "Your Secret Admirer",                 // appears in the romantic message
+  music:      "vibehorn-romantic-piano-431010.mp3",  // audio file path
+  maxDodges:  8,                                     // how many times No can dodge
+};
+// ─────────────────────────────────────────────────────────────────────────────
 
-const yesBtn=document.getElementById("yesBtn");
-const noBtn=document.getElementById("noBtn");
-const finalYesBtn=document.getElementById("finalYesBtn");
-const btnrow=document.getElementById("btnrow");
-const onlyYesRow=document.getElementById("onlyYesRow");
+// Resolve recipient name: URL param ?k= (base64) overrides CONFIG.name
+(function(){
+  const raw = new URLSearchParams(window.location.search).get('k');
+  try { CONFIG.resolvedName = raw ? atob(raw) : CONFIG.name; }
+  catch { CONFIG.resolvedName = CONFIG.name; }
+})();
 
-const fxLayer=document.getElementById("fxLayer");
-const balloonLayer=document.getElementById("balloonLayer");
+// ── DOM REFERENCES ────────────────────────────────────────────────────────────
+const progressBar    = document.getElementById("progressBar");
+const bootLine       = document.getElementById("bootLine");
+const scanLine       = document.getElementById("scanLine");
+const matchLine      = document.getElementById("matchLine");
+const compatLine     = document.getElementById("compatLine");
+const launchLine     = document.getElementById("launchLine");
+const authLine       = document.getElementById("authLine");
+const loadingBox     = document.getElementById("loadingBox");
+const loadingOverlay = document.getElementById("loadingOverlay");
+const card           = document.getElementById("card");
+const yesBtn         = document.getElementById("yesBtn");
+const noBtn          = document.getElementById("noBtn");
+const finalYesBtn    = document.getElementById("finalYesBtn");
+const btnrow         = document.getElementById("btnrow");
+const onlyYesRow     = document.getElementById("onlyYesRow");
+const fxLayer        = document.getElementById("fxLayer");
+const balloonLayer   = document.getElementById("balloonLayer");
+const bgMusic        = document.getElementById("bgMusic");
 
-// Get name from URL parameter
-const urlParams = new URLSearchParams(window.location.search);
-const _n = urlParams.get('k') || atob('S2Fyc3lu');
+// Wire up music source from config
+bgMusic.src = CONFIG.music;
 
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+// ── UTILITIES ─────────────────────────────────────────────────────────────────
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-// Typewriter effect
-async function typeText(element, text, speed = 40){
-  element.style.display = "block";
-  element.innerHTML = "";
+async function typeText(el, text, speed = 40){
+  el.style.display = "block";
+  el.innerHTML = "";
   for(let i = 0; i < text.length; i++){
-    element.innerHTML = text.substring(0, i + 1) + '<span class="typing-cursor"></span>';
+    el.innerHTML = text.substring(0, i + 1) + '<span class="typing-cursor"></span>';
     await sleep(speed);
   }
-  element.innerHTML = text;
+  el.innerHTML = text;
 }
 
-// Initialize name in header and romantic message
-function initName(){
-  document.getElementById("nameHeader").innerHTML = _n + " 💖";
-  document.getElementById("romanticName").textContent = _n;
+// ── NAME INIT ─────────────────────────────────────────────────────────────────
+function initNames(){
+  document.getElementById("nameHeader").innerHTML    = CONFIG.resolvedName + " 💖";
+  document.getElementById("romanticName").textContent = CONFIG.resolvedName;
+  document.getElementById("senderNameEl").textContent = CONFIG.senderName;
 }
 
+// ── LOADING SEQUENCE ──────────────────────────────────────────────────────────
 async function runLoading(){
-  initName();
+  initNames();
 
-  // Boot line with typewriter
   await typeText(bootLine, "> Booting romantic subsystem…", 35);
-  progressBar.style.width="20%";
+  progressBar.style.width = "20%";
   await sleep(500);
 
-  // Scan line with typewriter
-  await typeText(scanLine, "> Scanning for the most beautiful girl…", 30);
+  await typeText(scanLine, "> Scanning for the most amazing person…", 30);
   scanLine.classList.add("warn");
-  progressBar.style.width="40%";
+  progressBar.style.width = "40%";
   await sleep(800);
 
-  // Scan complete
   await typeText(scanLine, "> Scan complete ✓", 40);
   scanLine.classList.remove("warn");
   scanLine.classList.add("ok");
   await sleep(400);
 
-  // Match found with typewriter
   matchLine.style.display = "block";
   await typeText(matchLine, "> Match found: ", 35);
-  matchLine.innerHTML = '> Match found: <span class="ok">' + _n + '</span> <span class="badge">VERIFIED ✔</span>';
-  progressBar.style.width="60%";
+  matchLine.innerHTML =
+    '> Match found: <span class="ok">' + CONFIG.resolvedName + '</span>'
+    + ' <span class="badge">VERIFIED ✔</span>';
+  progressBar.style.width = "60%";
   await sleep(600);
 
-  // Compatibility line
   compatLine.style.display = "block";
   await typeText(compatLine, "> Compatibility score: ", 35);
   compatLine.innerHTML = '> Compatibility score: <span class="ok">100%</span> (confidence: ∞)';
-  progressBar.style.width="75%";
+  progressBar.style.width = "75%";
   await sleep(600);
 
-  // Launch line
   launchLine.style.display = "block";
   await typeText(launchLine, "> Launching Valentine interface…", 30);
-  progressBar.style.width="90%";
+  progressBar.style.width = "90%";
   await sleep(500);
 
-  // Auth success
   authLine.style.display = "block";
   await typeText(authLine, "> AUTH SUCCESS ✅ Valentine privileges unlocked", 25);
   authLine.classList.add("bounce");
-  progressBar.style.width="100%";
-  confettiBurst(window.innerWidth/2,window.innerHeight/2,60);
+  progressBar.style.width = "100%";
+  confettiBurst(window.innerWidth / 2, window.innerHeight / 2, 60);
   await sleep(1000);
 
   loadingBox.classList.add("fadeOut");
-  setTimeout(()=>{
-    loadingOverlay.style.display="none";
-    card.style.display="block";
-  },600);
+  setTimeout(() => {
+    loadingOverlay.style.display = "none";
+    // Smooth card entrance
+    card.style.display = "block";
+    requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add("visible")));
+  }, 600);
 }
 
-function confettiBurst(x,y,count){
-  for(let i=0;i<count;i++){
-    const c=document.createElement("div");
-    c.className="confetti";
-    c.style.left=x+"px";
-    c.style.top=y+"px";
-    c.style.background=["#ff4d88","#ffd479","#9effa9","#8ad7ff"][Math.floor(Math.random()*4)];
-    c.style.setProperty("--dx",(Math.random()*400-200)+"px");
-    c.style.setProperty("--dy",(Math.random()*400+100)+"px");
+// ── VISUAL EFFECTS ────────────────────────────────────────────────────────────
+function confettiBurst(x, y, count){
+  for(let i = 0; i < count; i++){
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = x + "px";
+    c.style.top  = y + "px";
+    c.style.background = ["#ff4d88","#ffd479","#9effa9","#8ad7ff"][Math.floor(Math.random() * 4)];
+    c.style.setProperty("--dx", (Math.random() * 400 - 200) + "px");
+    c.style.setProperty("--dy", (Math.random() * 400 + 100) + "px");
     fxLayer.appendChild(c);
-    setTimeout(()=>c.remove(),2000);
+    setTimeout(() => c.remove(), 2000);
   }
 }
 
 function spawnBalloons(){
-  for(let i=0;i<14;i++){
-    const b=document.createElement("div");
-    b.className="balloon";
-    b.style.left=Math.random()*window.innerWidth+"px";
-    b.style.top=window.innerHeight+"px";
-    b.style.background=["#ff4d88","#ff2d6d","#ff85b6"][Math.floor(Math.random()*3)];
+  for(let i = 0; i < 14; i++){
+    const b = document.createElement("div");
+    b.className = "balloon";
+    b.style.left       = Math.random() * window.innerWidth + "px";
+    b.style.top        = window.innerHeight + "px";
+    b.style.background = ["#ff4d88","#ff2d6d","#ff85b6"][Math.floor(Math.random() * 3)];
     balloonLayer.appendChild(b);
-    b.animate([
-      {transform:"translateY(0)"},
-      {transform:"translateY(-120vh)"}
-    ],{duration:4000,fill:"forwards"});
-    setTimeout(()=>{b.classList.add("pop");},3000);
-    setTimeout(()=>b.remove(),3500);
+    b.animate(
+      [{transform:"translateY(0)"},{transform:"translateY(-120vh)"}],
+      {duration:4000, fill:"forwards"}
+    );
+    setTimeout(() => b.classList.add("pop"), 3000);
+    setTimeout(() => b.remove(), 3500);
   }
 }
 
 function spawnFloatingHearts(){
   const hearts = ["💖","💕","💗","💓","❤️","💘","💝"];
-  for(let i=0;i<20;i++){
-    setTimeout(()=>{
+  for(let i = 0; i < 20; i++){
+    setTimeout(() => {
       const h = document.createElement("div");
-      h.className = "heart";
-      h.textContent = hearts[Math.floor(Math.random()*hearts.length)];
-      h.style.left = Math.random()*window.innerWidth+"px";
-      h.style.top = window.innerHeight+"px";
-      h.style.fontSize = (20 + Math.random()*20)+"px";
-      h.style.animationDuration = (3 + Math.random()*2)+"s";
+      h.className   = "heart";
+      h.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+      h.style.left            = Math.random() * window.innerWidth + "px";
+      h.style.top             = window.innerHeight + "px";
+      h.style.fontSize        = (20 + Math.random() * 20) + "px";
+      h.style.animationDuration = (3 + Math.random() * 2) + "s";
       fxLayer.appendChild(h);
-      setTimeout(()=>h.remove(),5000);
-    }, i*200);
+      setTimeout(() => h.remove(), 5000);
+    }, i * 200);
   }
 }
 
+// ── CELEBRATION ───────────────────────────────────────────────────────────────
 function celebrate(){
-  btnrow.style.display="none";
-  onlyYesRow.style.display="none";
+  btnrow.style.display    = "none";
+  onlyYesRow.style.display = "none";
 
-  // Update the prompt
-  document.getElementById("prompt").textContent="YES! 🎉";
+  document.getElementById("prompt").textContent = "YES! 🎉";
+  document.getElementById("romanticMsg").style.display = "block";
 
-  // Show romantic message
-  document.getElementById("romanticMsg").style.display="block";
-
-  // Add glow effect to card
   card.classList.add("celebrating");
 
-  // Play music with fade in
-  const music = document.getElementById("bgMusic");
-  music.volume = 0;
-  music.play();
+  bgMusic.volume = 0;
+  bgMusic.play();
   let vol = 0;
   const fadeIn = setInterval(() => {
-    if (vol < 0.6) {
-      vol += 0.03;
-      music.volume = vol;
-    } else {
-      clearInterval(fadeIn);
-    }
+    if(vol < 0.6){ vol += 0.03; bgMusic.volume = vol; }
+    else clearInterval(fadeIn);
   }, 150);
 
-  // Effects
   spawnBalloons();
   spawnFloatingHearts();
-  confettiBurst(window.innerWidth/2,window.innerHeight/2,100);
+  confettiBurst(window.innerWidth / 2, window.innerHeight / 2, 100);
 
-  // Keep spawning hearts periodically
-  setInterval(()=>{
-    spawnFloatingHearts();
-  },6000);
+  setInterval(spawnFloatingHearts, 6000);
 }
 
-let dodgeCount=0;
-const maxDodges=8;
-const comicWords=["POW!","BONK!","NOPE!","WHOOSH!","ZIP!","BOING!","YOINK!","ZOOM!","WHAM!"];
-const dodgeMessages=[
+// ── NO-BUTTON DODGE ───────────────────────────────────────────────────────────
+let dodgeCount = 0;
+
+const comicWords = ["POW!","BONK!","NOPE!","WHOOSH!","ZIP!","BOING!","YOINK!","ZOOM!","WHAM!"];
+const dodgeMessages = [
   "Are you sure? 🥺",
   "You're really breaking my heart… 💔",
-  "I promise I'll treat you like a queen 👑",
+  "I promise I'll treat you like royalty 👑",
   "Please don't do this to me… 😢",
   "I'll never stop asking… 🙏",
   "My heart only beats for you 💓",
@@ -536,94 +552,90 @@ const dodgeMessages=[
   "Fine… but my love isn't going anywhere 🥹"
 ];
 
-function spawnComicWord(x,y){
-  const el=document.createElement("div");
-  el.className="cartoon-word";
-  el.textContent=comicWords[Math.floor(Math.random()*comicWords.length)];
-  el.style.left=x+"px";
-  el.style.top=y+"px";
+function spawnComicWord(x, y){
+  const el = document.createElement("div");
+  el.className  = "cartoon-word";
+  el.textContent = comicWords[Math.floor(Math.random() * comicWords.length)];
+  el.style.left = x + "px";
+  el.style.top  = y + "px";
   document.body.appendChild(el);
-  setTimeout(()=>el.remove(),700);
+  setTimeout(() => el.remove(), 700);
 }
 
-function spawnStars(x,y){
-  for(let i=0;i<5;i++){
-    const s=document.createElement("div");
-    s.className="cartoon-stars";
-    s.textContent="⭐";
-    s.style.left=(x+(Math.random()-.5)*80)+"px";
-    s.style.top=(y+(Math.random()-.5)*80)+"px";
-    s.style.animationDelay=(i*80)+"ms";
+function spawnStars(x, y){
+  for(let i = 0; i < 5; i++){
+    const s = document.createElement("div");
+    s.className      = "cartoon-stars";
+    s.textContent    = "⭐";
+    s.style.left     = (x + (Math.random() - .5) * 80) + "px";
+    s.style.top      = (y + (Math.random() - .5) * 80) + "px";
+    s.style.animationDelay = (i * 80) + "ms";
     document.body.appendChild(s);
-    setTimeout(()=>s.remove(),1100);
+    setTimeout(() => s.remove(), 1100);
   }
 }
 
-function spawnDustCloud(x,y){
-  const d=document.createElement("div");
-  d.className="dust-cloud";
-  d.textContent="💨";
-  d.style.left=x+"px";
-  d.style.top=y+"px";
+function spawnDustCloud(x, y){
+  const d = document.createElement("div");
+  d.className   = "dust-cloud";
+  d.textContent = "💨";
+  d.style.left  = x + "px";
+  d.style.top   = y + "px";
   document.body.appendChild(d);
-  setTimeout(()=>d.remove(),600);
+  setTimeout(() => d.remove(), 600);
 }
 
 function dodgeButton(){
   dodgeCount++;
-  const rect=noBtn.getBoundingClientRect();
-  const oldX=rect.left+rect.width/2;
-  const oldY=rect.top+rect.height/2;
+  const rect = noBtn.getBoundingClientRect();
+  const oldX = rect.left + rect.width  / 2;
+  const oldY = rect.top  + rect.height / 2;
 
-  // Spawn effects at old position
-  spawnComicWord(oldX-30,oldY-50);
-  spawnStars(oldX,oldY);
-  spawnDustCloud(oldX-20,oldY-10);
+  spawnComicWord(oldX - 30, oldY - 50);
+  spawnStars(oldX, oldY);
+  spawnDustCloud(oldX - 20, oldY - 10);
 
-  // Update message
-  const prompt=document.getElementById("prompt");
-  prompt.textContent=dodgeMessages[Math.min(dodgeCount-1,dodgeMessages.length-1)];
+  const prompt = document.getElementById("prompt");
+  prompt.textContent = dodgeMessages[Math.min(dodgeCount - 1, dodgeMessages.length - 1)];
 
-  // Grow the Yes button
-  yesBtn.style.transform=`scale(${1+dodgeCount*0.1})`;
+  // Grow Yes button, capped so it doesn't overflow
+  const scale = Math.min(1 + dodgeCount * 0.1, 1.7);
+  yesBtn.style.transform = `scale(${scale})`;
 
-  if(dodgeCount>=maxDodges){
-    // Dramatic cartoon exit — spins off screen
+  if(dodgeCount >= CONFIG.maxDodges){
     noBtn.classList.add("cartoon-exit");
-    setTimeout(()=>{
-      btnrow.style.display="none";
-      onlyYesRow.style.display="block";
-      prompt.textContent="You can't say no to love… 💘";
-    },800);
+    setTimeout(() => {
+      btnrow.style.display     = "none";
+      onlyYesRow.style.display = "block";
+      prompt.textContent       = "You can't say no to love… 💘";
+    }, 800);
     return;
   }
 
-  // Make the button fixed so it can roam the whole screen
-  if(!noBtn.classList.contains("dodging")){
-    noBtn.classList.add("dodging");
-  }
+  if(!noBtn.classList.contains("dodging")) noBtn.classList.add("dodging");
 
-  // Teleport to a random spot
-  const pad=70;
-  const newX=pad+Math.random()*(window.innerWidth-pad*2);
-  const newY=pad+Math.random()*(window.innerHeight-pad*2);
-  noBtn.style.left=newX+"px";
-  noBtn.style.top=newY+"px";
+  // Clamp new position inside viewport with padding
+  const pad  = 70;
+  const maxX = window.innerWidth  - pad * 2;
+  const maxY = window.innerHeight - pad * 2;
+  const newX = pad + Math.random() * Math.max(maxX, 0);
+  const newY = pad + Math.random() * Math.max(maxY, 0);
+  noBtn.style.left = newX + "px";
+  noBtn.style.top  = newY + "px";
 
-  // Squash & stretch on landing
   noBtn.classList.remove("squash");
   void noBtn.offsetWidth;
   noBtn.classList.add("squash");
 }
 
-// Desktop: dodge on hover | Mobile: dodge on tap
-noBtn.addEventListener("mouseenter",dodgeButton);
-noBtn.addEventListener("touchstart",(e)=>{e.preventDefault();dodgeButton();},{passive:false});
+// ── EVENT WIRING ──────────────────────────────────────────────────────────────
+noBtn.addEventListener("mouseenter", dodgeButton);
+noBtn.addEventListener("touchstart", (e) => { e.preventDefault(); dodgeButton(); }, {passive:false});
 
-yesBtn.addEventListener("click",celebrate);
-finalYesBtn.addEventListener("click",celebrate);
+yesBtn.addEventListener("click", celebrate);
+finalYesBtn.addEventListener("click", celebrate);
 
-window.addEventListener("load",runLoading);
+window.addEventListener("load", runLoading);
 </script>
 </body>
 </html>
