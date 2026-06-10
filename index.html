@@ -405,7 +405,7 @@ async function typeText(el, text, speed = 40){
 
 // ── NAME INIT ─────────────────────────────────────────────────────────────────
 function initNames(){
-  document.getElementById("nameHeader").innerHTML    = CONFIG.resolvedName + " 💖";
+  document.getElementById("nameHeader").textContent   = CONFIG.resolvedName + " 💖";
   document.getElementById("romanticName").textContent = CONFIG.resolvedName;
   document.getElementById("senderNameEl").textContent = CONFIG.senderName;
 }
@@ -430,9 +430,16 @@ async function runLoading(){
 
   matchLine.style.display = "block";
   await typeText(matchLine, "> Match found: ", 35);
-  matchLine.innerHTML =
-    '> Match found: <span class="ok">' + CONFIG.resolvedName + '</span>'
-    + ' <span class="badge">VERIFIED ✔</span>';
+  matchLine.textContent = '> Match found: ';
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "ok";
+  nameSpan.textContent = CONFIG.resolvedName;
+  const badgeSpan = document.createElement("span");
+  badgeSpan.className = "badge";
+  badgeSpan.textContent = "VERIFIED ✔";
+  matchLine.appendChild(nameSpan);
+  matchLine.appendChild(document.createTextNode(" "));
+  matchLine.appendChild(badgeSpan);
   progressBar.style.width = "60%";
   await sleep(600);
 
